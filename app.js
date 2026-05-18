@@ -9,7 +9,7 @@ const stylePicker = document.querySelector("#stylePicker");
 const recipeTemplate = document.querySelector("#recipeTemplate");
 
 const MAX_INGREDIENTS = 5;
-const DAILY_RECOMMENDATION_LIMIT = 10;
+const DAILY_RECOMMENDATION_LIMIT = 2;
 const USAGE_KEY = "naengteol-doctor-usage";
 let ingredients = [];
 let selectedStyle = "간단식";
