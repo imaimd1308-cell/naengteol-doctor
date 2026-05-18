@@ -9,6 +9,8 @@ const stylePicker = document.querySelector("#stylePicker");
 const recipeTemplate = document.querySelector("#recipeTemplate");
 
 const MAX_INGREDIENTS = 5;
+const DAILY_RECOMMENDATION_LIMIT = 10;
+const USAGE_KEY = "naengteol-doctor-usage";
 let ingredients = [];
 let selectedStyle = "간단식";
 let currentRecommendations = [];
@@ -67,6 +69,34 @@ function renderMessage(message) {
   results.innerHTML = `<div class="empty-state">${message}</div>`;
 }
 
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getUsage() {
+  try {
+    const usage = JSON.parse(localStorage.getItem(USAGE_KEY) || "{}");
+    if (usage.date === getTodayKey() && Number.isInteger(usage.count)) return usage;
+  } catch {
+    // Ignore broken local storage data and start a fresh counter.
+  }
+
+  return { date: getTodayKey(), count: 0 };
+}
+
+function saveUsage(usage) {
+  localStorage.setItem(USAGE_KEY, JSON.stringify(usage));
+}
+
+function hasDailyQuota() {
+  return getUsage().count < DAILY_RECOMMENDATION_LIMIT;
+}
+
+function recordRecommendationUse() {
+  const usage = getUsage();
+  saveUsage({ date: getTodayKey(), count: usage.count + 1 });
+}
+
 async function requestRecommendations() {
   const response = await fetch("./api/recommend", {
     method: "POST",
@@ -98,11 +128,17 @@ async function renderRecommendations() {
     return;
   }
 
+  if (!hasDailyQuota()) {
+    renderMessage(`오늘 추천 가능 횟수 ${DAILY_RECOMMENDATION_LIMIT}회를 모두 사용했어요. 내일 다시 이용해 주세요.`);
+    return;
+  }
+
   setLoading(true);
   renderMessage("입력한 재료와 오늘의 방향을 보고 있어요.");
 
   try {
     currentRecommendations = await requestRecommendations();
+    recordRecommendationUse();
     results.innerHTML = "";
 
     currentRecommendations.forEach((recipe, index) => {
